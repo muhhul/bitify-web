@@ -1,134 +1,148 @@
-"use client"
+"use client";
 
-import { useState, useRef, useEffect } from "react"
-import { Card, CardContent } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Slider } from "@/components/ui/slider"
-import { Play, Pause, Volume2, VolumeX, SkipBack, SkipForward, Repeat, Shuffle, Music } from "lucide-react"
-import { cn } from "@/lib/utils"
+import { useState, useRef, useEffect } from "react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Slider } from "@/components/ui/slider";
+import {
+  Play,
+  Pause,
+  Volume2,
+  VolumeX,
+  SkipBack,
+  SkipForward,
+  Repeat,
+  Shuffle,
+  Music,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface InteractiveAudioPlayerProps {
-  file: File | Blob
-  title?: string
-  className?: string
+  file: File | Blob;
+  title?: string;
+  className?: string;
 }
 
-export function InteractiveAudioPlayer({ file, title = "Audio", className }: InteractiveAudioPlayerProps) {
-  const [isPlaying, setIsPlaying] = useState(false)
-  const [currentTime, setCurrentTime] = useState(0)
-  const [duration, setDuration] = useState(0)
-  const [volume, setVolume] = useState(0.8)
-  const [isMuted, setIsMuted] = useState(false)
-  const [audioUrl, setAudioUrl] = useState<string>("")
-  const [isLoading, setIsLoading] = useState(true)
-  const [waveformData, setWaveformData] = useState<number[]>([])
-  const [isHovered, setIsHovered] = useState(false)
+export function InteractiveAudioPlayer({
+  file,
+  title = "Audio",
+  className,
+}: InteractiveAudioPlayerProps) {
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [volume, setVolume] = useState(0.8);
+  const [isMuted, setIsMuted] = useState(false);
+  const [audioUrl, setAudioUrl] = useState<string>("");
+  const [isLoading, setIsLoading] = useState(true);
+  const [waveformData, setWaveformData] = useState<number[]>([]);
+  const [isHovered, setIsHovered] = useState(false);
 
-  const audioRef = useRef<HTMLAudioElement>(null)
+  const audioRef = useRef<HTMLAudioElement>(null);
 
   useEffect(() => {
-    const url = URL.createObjectURL(file)
-    setAudioUrl(url)
-    generateWaveform()
+    const url = URL.createObjectURL(file);
+    setAudioUrl(url);
+    generateWaveform();
 
     return () => {
-      URL.revokeObjectURL(url)
-    }
-  }, [file])
+      URL.revokeObjectURL(url);
+    };
+  }, [file]);
 
   useEffect(() => {
-    const audio = audioRef.current
-    if (!audio) return
+    const audio = audioRef.current;
+    if (!audio) return;
 
-    const updateTime = () => setCurrentTime(audio.currentTime)
+    const updateTime = () => setCurrentTime(audio.currentTime);
     const updateDuration = () => {
-      setDuration(audio.duration)
-      setIsLoading(false)
-    }
-    const handleEnded = () => setIsPlaying(false)
-    const handleLoadStart = () => setIsLoading(true)
+      setDuration(audio.duration);
+      setIsLoading(false);
+    };
+    const handleEnded = () => setIsPlaying(false);
+    const handleLoadStart = () => setIsLoading(true);
 
-    audio.addEventListener("timeupdate", updateTime)
-    audio.addEventListener("loadedmetadata", updateDuration)
-    audio.addEventListener("ended", handleEnded)
-    audio.addEventListener("loadstart", handleLoadStart)
+    audio.addEventListener("timeupdate", updateTime);
+    audio.addEventListener("loadedmetadata", updateDuration);
+    audio.addEventListener("ended", handleEnded);
+    audio.addEventListener("loadstart", handleLoadStart);
 
     return () => {
-      audio.removeEventListener("timeupdate", updateTime)
-      audio.removeEventListener("loadedmetadata", updateDuration)
-      audio.removeEventListener("ended", handleEnded)
-      audio.removeEventListener("loadstart", handleLoadStart)
-    }
-  }, [audioUrl])
+      audio.removeEventListener("timeupdate", updateTime);
+      audio.removeEventListener("loadedmetadata", updateDuration);
+      audio.removeEventListener("ended", handleEnded);
+      audio.removeEventListener("loadstart", handleLoadStart);
+    };
+  }, [audioUrl]);
 
   const generateWaveform = () => {
     const data = Array.from({ length: 120 }, (_, i) => {
-      const base = Math.sin(i * 0.1) * 50 + 50
-      const noise = Math.random() * 30
-      return Math.max(10, Math.min(100, base + noise))
-    })
-    setWaveformData(data)
-  }
+      const base = Math.sin(i * 0.1) * 50 + 50;
+      const noise = Math.random() * 30;
+      return Math.max(10, Math.min(100, base + noise));
+    });
+    setWaveformData(data);
+  };
 
   const togglePlay = () => {
-    const audio = audioRef.current
-    if (!audio) return
+    const audio = audioRef.current;
+    if (!audio) return;
 
     if (isPlaying) {
-      audio.pause()
+      audio.pause();
     } else {
-      audio.play()
+      audio.play();
     }
-    setIsPlaying(!isPlaying)
-  }
+    setIsPlaying(!isPlaying);
+  };
 
   const handleSeek = (value: number[]) => {
-    const audio = audioRef.current
-    if (!audio) return
+    const audio = audioRef.current;
+    if (!audio) return;
 
-    const newTime = value[0]
-    audio.currentTime = newTime
-    setCurrentTime(newTime)
-  }
+    const newTime = value[0];
+    audio.currentTime = newTime;
+    setCurrentTime(newTime);
+  };
 
   const handleVolumeChange = (value: number[]) => {
-    const audio = audioRef.current
-    if (!audio) return
+    const audio = audioRef.current;
+    if (!audio) return;
 
-    const newVolume = value[0]
-    audio.volume = newVolume
-    setVolume(newVolume)
-    setIsMuted(newVolume === 0)
-  }
+    const newVolume = value[0];
+    audio.volume = newVolume;
+    setVolume(newVolume);
+    setIsMuted(newVolume === 0);
+  };
 
   const toggleMute = () => {
-    const audio = audioRef.current
-    if (!audio) return
+    const audio = audioRef.current;
+    if (!audio) return;
 
     if (isMuted) {
-      audio.volume = volume
-      setIsMuted(false)
+      audio.volume = volume;
+      setIsMuted(false);
     } else {
-      audio.volume = 0
-      setIsMuted(true)
+      audio.volume = 0;
+      setIsMuted(true);
     }
-  }
+  };
 
   const formatTime = (time: number) => {
-    if (isNaN(time)) return "0:00"
-    const minutes = Math.floor(time / 60)
-    const seconds = Math.floor(time % 60)
-    return `${minutes}:${seconds.toString().padStart(2, "0")}`
-  }
+    if (isNaN(time)) return "0:00";
+    const minutes = Math.floor(time / 60);
+    const seconds = Math.floor(time % 60);
+    return `${minutes}:${seconds.toString().padStart(2, "0")}`;
+  };
 
-  const progress = duration > 0 ? (currentTime / duration) * 100 : 0
+  const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
 
   return (
     <Card
       className={cn(
         "glass overflow-hidden transition-all duration-500 hover:shadow-2xl border-0 group",
         isPlaying && "ring-2 ring-primary/30 shadow-lg shadow-primary/10",
-        className,
+        className
       )}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
@@ -143,17 +157,24 @@ export function InteractiveAudioPlayer({ file, title = "Audio", className }: Int
                 "w-14 h-14 rounded-2xl bg-gradient-to-br flex items-center justify-center transition-all duration-500",
                 isPlaying
                   ? "from-primary to-accent shadow-lg shadow-primary/25 animate-glow scale-110"
-                  : "from-primary/10 to-accent/10 group-hover:from-primary/20 group-hover:to-accent/20",
+                  : "from-primary/10 to-accent/10 group-hover:from-primary/20 group-hover:to-accent/20"
               )}
             >
               <Music
-                className={cn("w-7 h-7 transition-colors duration-300", isPlaying ? "text-white" : "text-primary")}
+                className={cn(
+                  "w-7 h-7 transition-colors duration-300",
+                  isPlaying ? "text-white" : "text-primary"
+                )}
               />
             </div>
             <div>
-              <h3 className="text-xl font-bold text-card-foreground">{title}</h3>
+              <h3 className="text-xl font-bold text-card-foreground">
+                {title}
+              </h3>
               <p className="text-sm text-muted-foreground">
-                {isLoading ? "Loading..." : `${formatTime(duration)} • High Quality`}
+                {isLoading
+                  ? "Loading..."
+                  : `${formatTime(duration)} • High Quality`}
               </p>
             </div>
           </div>
@@ -161,25 +182,29 @@ export function InteractiveAudioPlayer({ file, title = "Audio", className }: Int
             <div
               className={cn(
                 "flex items-center gap-2 px-3 py-1 rounded-full transition-all duration-300",
-                isPlaying ? "bg-primary/10 text-primary" : "bg-muted/30 text-muted-foreground",
+                isPlaying
+                  ? "bg-primary/10 text-primary"
+                  : "bg-muted/30 text-muted-foreground"
               )}
             >
               <div
                 className={cn(
                   "w-2 h-2 rounded-full transition-all duration-300",
-                  isPlaying ? "bg-primary animate-pulse" : "bg-muted-foreground",
+                  isPlaying ? "bg-primary animate-pulse" : "bg-muted-foreground"
                 )}
               />
-              <span className="text-xs font-medium">{isPlaying ? "Playing" : "Paused"}</span>
+              <span className="text-xs font-medium">
+                {isPlaying ? "Playing" : "Paused"}
+              </span>
             </div>
           </div>
         </div>
 
         <div className="mb-8">
           <div className="relative h-20 bg-gradient-to-r from-muted/20 via-muted/30 to-muted/20 rounded-2xl overflow-hidden p-2">
-            <div className="flex items-end justify-center h-full gap-1">
+            <div className="flex items-end justify-between h-full w-full px-2">
               {waveformData.map((height, index) => {
-                const isActive = index < (progress / 100) * waveformData.length
+                const isActive = index < (progress / 100) * waveformData.length;
                 return (
                   <div
                     key={index}
@@ -187,20 +212,20 @@ export function InteractiveAudioPlayer({ file, title = "Audio", className }: Int
                       "w-1 rounded-full transition-all duration-300 cursor-pointer hover:scale-110",
                       isActive
                         ? "bg-gradient-to-t from-primary via-primary to-accent shadow-sm"
-                        : "bg-gradient-to-t from-muted-foreground/40 to-muted-foreground/20 hover:from-primary/50 hover:to-accent/50",
+                        : "bg-gradient-to-t from-muted-foreground/40 to-muted-foreground/20 hover:from-primary/50 hover:to-accent/50"
                     )}
                     style={{
                       height: `${Math.max(height * 0.7, 8)}%`,
                       animationDelay: `${index * 10}ms`,
                     }}
                   />
-                )
+                );
               })}
             </div>
 
             <div
               className="absolute top-0 left-0 h-full bg-gradient-to-r from-primary/10 via-primary/20 to-accent/10 transition-all duration-100 rounded-2xl"
-              style={{ width: `${progress}%` }}
+              style={{ width: `${progress + 0.5}%` }}
             />
           </div>
         </div>
@@ -215,8 +240,12 @@ export function InteractiveAudioPlayer({ file, title = "Audio", className }: Int
             disabled={isLoading}
           />
           <div className="flex justify-between text-sm">
-            <span className="text-primary font-medium">{formatTime(currentTime)}</span>
-            <span className="text-muted-foreground">{formatTime(duration)}</span>
+            <span className="text-primary font-medium">
+              {formatTime(currentTime)}
+            </span>
+            <span className="text-muted-foreground">
+              {formatTime(duration)}
+            </span>
           </div>
         </div>
 
@@ -244,10 +273,16 @@ export function InteractiveAudioPlayer({ file, title = "Audio", className }: Int
               size="lg"
               className={cn(
                 "w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-accent hover:from-primary/90 hover:to-accent/90 transition-all duration-500 shadow-lg",
-                isPlaying ? "scale-110 shadow-xl shadow-primary/30" : "hover:scale-105",
+                isPlaying
+                  ? "scale-110 shadow-xl shadow-primary/30"
+                  : "hover:scale-105"
               )}
             >
-              {isPlaying ? <Pause className="w-6 h-6 text-white" /> : <Play className="w-6 h-6 text-white ml-1" />}
+              {isPlaying ? (
+                <Pause className="w-6 h-6 text-white" />
+              ) : (
+                <Play className="w-6 h-6 text-white ml-1" />
+              )}
             </Button>
             <Button
               variant="ghost"
@@ -274,7 +309,11 @@ export function InteractiveAudioPlayer({ file, title = "Audio", className }: Int
               onClick={toggleMute}
               className="hover:bg-primary/10 hover:text-primary transition-all duration-300"
             >
-              {isMuted || volume === 0 ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+              {isMuted || volume === 0 ? (
+                <VolumeX className="w-4 h-4" />
+              ) : (
+                <Volume2 className="w-4 h-4" />
+              )}
             </Button>
             <div className="flex items-center gap-2">
               <Slider
@@ -284,11 +323,13 @@ export function InteractiveAudioPlayer({ file, title = "Audio", className }: Int
                 onValueChange={handleVolumeChange}
                 className="w-24"
               />
-              <span className="text-xs text-muted-foreground w-8">{Math.round((isMuted ? 0 : volume) * 100)}%</span>
+              <span className="text-xs text-muted-foreground w-8">
+                {Math.round((isMuted ? 0 : volume) * 100)}%
+              </span>
             </div>
           </div>
         </div>
       </CardContent>
     </Card>
-  )
+  );
 }
