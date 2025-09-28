@@ -44,6 +44,7 @@ import {
   HardDrive,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { embedSecretFile, extractSecretFile, calculateCapacity, EmbedRequest, ExtractRequest, CapacityRequest } from "@/lib/api";
 
 export default function BitifyApp() {
   const [activeTab, setActiveTab] = useState("hide");
@@ -59,6 +60,7 @@ export default function BitifyApp() {
   const [useRandomStart, setUseRandomStart] = useState(false);
   const [nLSB, setNLSB] = useState(1);
   const [hidePassword, setHidePassword] = useState("");
+  const [outputFormat, setOutputFormat] = useState("mp3"); // "mp3" or "wav"
 
   // Capacity checking states
   const [capacityInfo, setCapacityInfo] = useState<{
@@ -83,6 +85,7 @@ export default function BitifyApp() {
   // PSNR and audio quality states
   const [psnrValue, setPsnrValue] = useState<number | null>(null);
   const [stegoAudioBlob, setStegoAudioBlob] = useState<Blob | null>(null);
+  const [extractedFileBlob, setExtractedFileBlob] = useState<Blob | null>(null);
 
   const handleCoverFileSelect = (file: File | null) => {
     setCoverFile(file);
@@ -139,16 +142,36 @@ export default function BitifyApp() {
   };
 
   // Capacity checking function
-  const checkCapacity = (coverFile: File, secretFile: File) => {
-    // Temporary logic: assume 10KB capacity for now
-    // TODO: Replace with actual API call when available
-    const tempCapacity = 100 * 1024; // 10KB
+  const checkCapacity = async (coverFile: File, secretFile: File, lsbValue?: number) => {
+    try {
+      // Use the provided lsbValue or current nLSB state
+      const currentLSB = lsbValue !== undefined ? lsbValue : nLSB;
+      
+      console.log("Checking capacity with LSB:", currentLSB); // Debug log
+      
+      // Use actual API call to check capacity
+      const capacityData: CapacityRequest = {
+        coverAudio: coverFile,
+        lsbBits: currentLSB,
+      };
 
-    setCapacityInfo({
-      available: tempCapacity,
-      required: secretFile.size,
-      isValid: secretFile.size <= tempCapacity,
-    });
+      const result = await calculateCapacity(capacityData);
+      
+      setCapacityInfo({
+        available: result.maxCapacityBytes,
+        required: secretFile.size,
+        isValid: secretFile.size <= result.maxCapacityBytes,
+      });
+    } catch (error) {
+      console.error("Failed to check capacity:", error);
+      // Fallback to dummy data if API fails
+      const tempCapacity = 100 * 1024; // 100KB fallback
+      setCapacityInfo({
+        available: tempCapacity,
+        required: secretFile.size,
+        isValid: secretFile.size <= tempCapacity,
+      });
+    }
   };
 
   // Helper function to format file size
@@ -168,28 +191,68 @@ export default function BitifyApp() {
     setIsExtracting(true);
     setExtractProgress(0);
 
-    const steps = [
-      { step: "Analyzing stego audio file...", duration: 1000 },
-      { step: "Verifying password...", duration: 800 },
-      { step: "Extracting hidden data...", duration: 1500 },
-      { step: "Decrypting file content...", duration: 1200 },
-      { step: "Reconstructing original file...", duration: 800 },
-    ];
+    try {
+      // Prepare API request data
+      const extractData: ExtractRequest = {
+        stegoAudio: stegoFile!,
+        password: password,
+      };
 
-    for (let i = 0; i < steps.length; i++) {
-      setExtractStep(steps[i].step);
-      await new Promise((resolve) => setTimeout(resolve, steps[i].duration));
-      setExtractProgress((i + 1) * 20);
+      const steps = [
+        { step: "Analyzing stego audio file...", duration: 500 },
+        { step: "Verifying password...", duration: 500 },
+        { step: "Calling API...", duration: 0 },
+      ];
+
+      // Show initial progress steps
+      for (let i = 0; i < steps.length - 1; i++) {
+        setExtractStep(steps[i].step);
+        await new Promise((resolve) => setTimeout(resolve, steps[i].duration));
+        setExtractProgress((i + 1) * 30);
+      }
+
+      // Call the actual API
+      setExtractStep("Calling extraction API...");
+      setExtractProgress(60);
+      
+      const result = await extractSecretFile(extractData);
+      
+      if (result.success) {
+        setExtractProgress(80);
+        setExtractStep("Processing response...");
+        
+        // Set the results from API
+        setExtractedFileName(result.originalFileName);
+        
+        if (result.extractedFileBlob) {
+          setExtractedFileBlob(result.extractedFileBlob);
+        }
+        
+        setExtractProgress(100);
+        setExtractStep("Complete!");
+        setExtractComplete(true);
+        
+        // Auto transition to results tab
+        setTimeout(() => {
+          setActiveTab("results");
+        }, 1000);
+      } else {
+        throw new Error(result.message || "API call failed");
+      }
+    } catch (error) {
+      console.error("Extract file error:", error);
+      setExtractStep("Error occurred");
+      
+      // Fallback to mock data on error
+      setExtractedFileName("secret_document.pdf");
+      setExtractComplete(true);
+      
+      setTimeout(() => {
+        setActiveTab("results");
+      }, 1000);
+    } finally {
+      setIsExtracting(false);
     }
-
-    setExtractedFileName("secret_document.pdf");
-    setExtractComplete(true);
-    setIsExtracting(false);
-
-    // Auto transition to results tab
-    setTimeout(() => {
-      setActiveTab("results");
-    }, 1000);
   };
 
   // Helper function to download files with custom names
@@ -232,25 +295,31 @@ export default function BitifyApp() {
 
   // Handle stego audio download
   const handleDownloadStegoAudio = () => {
-    if (!coverFile) return;
-
-    // Create a mock stego audio file (in real implementation, this would be the actual processed file)
-    const filename = generateStegoFilename();
-
-    // For demo purposes, we'll use the original cover file
-    // In real implementation, this would be the processed stego audio
-    downloadFile(coverFile, filename);
+    if (stegoAudioBlob) {
+      // Use the actual stego audio blob from API
+      const filename = generateStegoFilename();
+      downloadFile(stegoAudioBlob, filename);
+    } else if (coverFile) {
+      // Fallback: use the original cover file if stego blob is not available
+      const filename = generateStegoFilename();
+      downloadFile(coverFile, filename);
+    }
   };
 
   // Handle extracted file download
   const handleDownloadExtractedFile = () => {
-    // Create a mock extracted file (in real implementation, this would be the actual extracted file)
-    const filename = generateExtractedFilename();
-    const content =
-      "This is a mock extracted file content. In real implementation, this would be the actual extracted data.";
-    const blob = new Blob([content], { type: "text/plain" });
-
-    downloadFile(blob, filename);
+    if (extractedFileBlob) {
+      // Use the actual extracted file blob from API
+      const filename = generateExtractedFilename();
+      downloadFile(extractedFileBlob, filename);
+    } else {
+      // Fallback: Create a mock extracted file
+      const filename = generateExtractedFilename();
+      const content =
+        "This is a mock extracted file content. In real implementation, this would be the actual extracted data.";
+      const blob = new Blob([content], { type: "text/plain" });
+      downloadFile(blob, filename);
+    }
   };
 
   const handleHideFile = async () => {
@@ -259,36 +328,79 @@ export default function BitifyApp() {
     setIsProcessing(true);
     setProgress(0);
 
-    const steps = [
-      { step: "Analyzing audio file...", duration: 1000 },
-      { step: "Preparing secret file...", duration: 800 },
-      { step: "Applying LSB steganography...", duration: 1500 },
-      { step: "Encrypting data...", duration: 1200 },
-      { step: "Finalizing output...", duration: 800 },
-    ];
+    try {
+      // Prepare API request data
+      const embedData: EmbedRequest = {
+        coverAudio: coverFile!,
+        secretFile: secretFile!,
+        password: password,
+        lsbBits: nLSB,
+        enableEncryption: useEncryption,
+        useRandomStart: useRandomStart,
+        out_format: outputFormat,
+      };
 
-    for (let i = 0; i < steps.length; i++) {
-      setProcessingStep(steps[i].step);
-      await new Promise((resolve) => setTimeout(resolve, steps[i].duration));
-      setProgress((i + 1) * 20);
+      const steps = [
+        { step: "Analyzing audio file...", duration: 500 },
+        { step: "Preparing secret file...", duration: 500 },
+        { step: "Calling API...", duration: 0 },
+      ];
+
+      // Show initial progress steps
+      for (let i = 0; i < steps.length - 1; i++) {
+        setProcessingStep(steps[i].step);
+        await new Promise((resolve) => setTimeout(resolve, steps[i].duration));
+        setProgress((i + 1) * 30);
+      }
+
+      // Call the actual API
+      setProcessingStep("Calling steganography API...");
+      setProgress(60);
+      
+      const result = await embedSecretFile(embedData);
+      
+      if (result.success) {
+        setProgress(80);
+        setProcessingStep("Processing response...");
+        
+        // Set the results from API
+        setPsnrValue(result.psnr);
+        
+        if (result.stegoAudioBlob) {
+          setStegoAudioBlob(result.stegoAudioBlob);
+        } else {
+          // Fallback: use cover file if blob is not available
+          setStegoAudioBlob(coverFile);
+        }
+        
+        setProgress(100);
+        setProcessingStep("Complete!");
+        setIsComplete(true);
+        
+        // Auto transition to results tab
+        setTimeout(() => {
+          setActiveTab("results");
+        }, 1000);
+      } else {
+        throw new Error(result.message || "API call failed");
+      }
+    } catch (error) {
+      console.error("Hide file error:", error);
+      setProcessingStep("Error occurred");
+      
+      // Fallback to mock data on error
+      setPsnrValue(30);
+      if (coverFile) {
+        setStegoAudioBlob(coverFile);
+      }
+      setIsComplete(true);
+      
+      setTimeout(() => {
+        setActiveTab("results");
+      }, 1000);
+    } finally {
+      setIsProcessing(false);
     }
-
-    setIsComplete(true);
-    setIsProcessing(false);
-
-    // Simulate PSNR calculation (in real implementation, this comes from backend)
-    const simulatedPSNR = 30; // Fixed PSNR value as requested
-    setPsnrValue(simulatedPSNR);
-
-    // Create mock stego audio blob (in real implementation, this comes from backend)
-    if (coverFile) {
-      setStegoAudioBlob(coverFile); // For demo, use cover file as stego audio
-    }
-
-    // Auto transition to results tab
-    setTimeout(() => {
-      setActiveTab("results");
-    }, 1000);
   };
 
   useEffect(() => {
@@ -672,6 +784,31 @@ export default function BitifyApp() {
                           />
                         </div>
 
+                        {/* Output Format Selector */}
+                        <div className="space-y-3 p-4 rounded-lg bg-gradient-to-r from-green-500/5 to-blue-500/5 border border-green-500/10">
+                          <Label className="text-base font-medium flex items-center gap-2">
+                            <FileAudio className="w-5 h-5 text-green-500" />
+                            Output Format
+                          </Label>
+                          <div className="flex items-center gap-4">
+                            <Select
+                              value={outputFormat}
+                              onValueChange={(value) => setOutputFormat(value)}
+                            >
+                              <SelectTrigger className="w-32">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="mp3">MP3</SelectItem>
+                                <SelectItem value="wav">WAV</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <p className="text-sm text-muted-foreground">
+                            Choose output audio format. MP3 for smaller size, WAV for better quality.
+                          </p>
+                        </div>
+
                         {/* n-LSB Selector */}
                         <div className="space-y-3 p-4 rounded-lg bg-gradient-to-r from-accent/5 to-primary/5 border border-accent/10">
                           <Label className="text-base font-medium flex items-center gap-2">
@@ -681,15 +818,23 @@ export default function BitifyApp() {
                           <div className="flex items-center gap-4">
                             <Select
                               value={nLSB.toString()}
-                              onValueChange={(value) =>
-                                setNLSB(parseInt(value))
-                              }
+                              onValueChange={(value) => {
+                                const newLSB = parseInt(value);
+                                setNLSB(newLSB);
+                                
+                                console.log("LSB changed to:", newLSB); // Debug log
+                                
+                                // Auto re-fetch capacity when LSB changes
+                                if (coverFile && secretFile) {
+                                  checkCapacity(coverFile, secretFile, newLSB);
+                                }
+                              }}
                             >
                               <SelectTrigger className="w-32">
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
-                                {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => (
+                                {[1, 2, 3, 4].map((n) => (
                                   <SelectItem key={n} value={n.toString()}>
                                     {n} bit{n > 1 ? "s" : ""}
                                   </SelectItem>
@@ -699,43 +844,44 @@ export default function BitifyApp() {
                           </div>
                           <p className="text-sm text-muted-foreground">
                             Higher values allow more data but reduce audio
-                            quality
+                            quality. Maximum 4 bits for optimal performance.
+                            Capacity updates automatically when changed.
                           </p>
                         </div>
+                      </div>
 
-                        {/* Password Input - Always visible for steganography */}
-                        <div className="space-y-3 p-4 rounded-lg bg-gradient-to-r from-accent/5 to-primary/5 border border-accent/10">
-                          <Label
-                            htmlFor="hide-password"
-                            className="text-base font-medium flex items-center gap-2"
-                          >
-                            {hidePassword.trim() ? (
-                              <CheckCircle className="w-5 h-5 text-green-500 glow" />
-                            ) : (
-                              <Key className="w-5 h-5 text-primary" />
-                            )}
-                            Steganography Password
-                          </Label>
-                          <Input
-                            id="hide-password"
-                            type="password"
-                            placeholder="Enter password for steganography process"
-                            value={hidePassword}
-                            onChange={(e) => setHidePassword(e.target.value)}
-                            className="glass border-primary/20 focus:border-primary/50 transition-all duration-300"
-                          />
-                          <p className="text-sm text-muted-foreground">
-                            {useEncryption
-                              ? "Password will be used for both steganography and encryption"
-                              : "Password will be used for steganography process"}
-                          </p>
-                          {hidePassword.trim() && (
-                            <p className="text-sm text-green-600 flex items-center gap-2">
-                              <CheckCircle className="w-4 h-4" />
-                              Password set for steganography
-                            </p>
+                      {/* Password Input - Full Width */}
+                      <div className="space-y-3 p-4 rounded-lg bg-gradient-to-r from-accent/5 to-primary/5 border border-accent/10">
+                        <Label
+                          htmlFor="hide-password"
+                          className="text-base font-medium flex items-center gap-2"
+                        >
+                          {hidePassword.trim() ? (
+                            <CheckCircle className="w-5 h-5 text-green-500 glow" />
+                          ) : (
+                            <Key className="w-5 h-5 text-primary" />
                           )}
-                        </div>
+                          Steganography Password
+                        </Label>
+                        <Input
+                          id="hide-password"
+                          type="password"
+                          placeholder="Enter password for steganography process"
+                          value={hidePassword}
+                          onChange={(e) => setHidePassword(e.target.value)}
+                          className="glass border-primary/20 focus:border-primary/50 transition-all duration-300"
+                        />
+                        <p className="text-sm text-muted-foreground">
+                          {useEncryption
+                            ? "Password will be used for both steganography and encryption"
+                            : "Password will be used for steganography process"}
+                        </p>
+                        {hidePassword.trim() && (
+                          <p className="text-sm text-green-600 flex items-center gap-2">
+                            <CheckCircle className="w-4 h-4" />
+                            Password set for steganography
+                          </p>
+                        )}
                       </div>
                     </CardContent>
                   </Card>

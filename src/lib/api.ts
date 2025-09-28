@@ -9,6 +9,7 @@ export interface EmbedRequest {
   lsbBits: number;
   enableEncryption: boolean;
   useRandomStart: boolean;
+  out_format: string; // "mp3" or "wav"
 }
 
 export interface EmbedResponse {
@@ -59,15 +60,16 @@ export async function embedSecretFile(
   data: EmbedRequest
 ): Promise<EmbedResponse> {
   const formData = new FormData();
-  formData.append("coverAudio", data.coverAudio);
-  formData.append("secretFile", data.secretFile);
-  formData.append("password", data.password);
-  formData.append("lsbBits", data.lsbBits.toString());
-  formData.append("enableEncryption", data.enableEncryption.toString());
-  formData.append("useRandomStart", data.useRandomStart.toString());
+  formData.append("cover", data.coverAudio);
+  formData.append("secret", data.secretFile);
+  formData.append("key", data.password);
+  formData.append("nlsb", data.lsbBits.toString());
+  formData.append("encrypt", data.enableEncryption.toString());
+  formData.append("random_start", data.useRandomStart.toString());
+  formData.append("out_format", data.out_format);
 
   try {
-    const response = await fetch(`${API_BASE_URL}/api/insert`, {
+    const response = await fetch(`${API_BASE_URL}/api/embed`, {
       method: "POST",
       body: formData,
     });
@@ -82,6 +84,19 @@ export async function embedSecretFile(
     }
 
     const result = await response.json();
+    
+    // Download the stego audio blob if URL is provided
+    if (result.stegoAudioUrl) {
+      try {
+        const audioResponse = await fetch(result.stegoAudioUrl);
+        if (audioResponse.ok) {
+          result.stegoAudioBlob = await audioResponse.blob();
+        }
+      } catch (error) {
+        console.warn("Failed to download stego audio blob:", error);
+      }
+    }
+    
     return result;
   } catch (error) {
     console.error("Insertion API error:", error);
@@ -96,8 +111,8 @@ export async function extractSecretFile(
   data: ExtractRequest
 ): Promise<ExtractResponse> {
   const formData = new FormData();
-  formData.append("stegoAudio", data.stegoAudio);
-  formData.append("password", data.password);
+  formData.append("stego", data.stegoAudio);
+  formData.append("key", data.password);
 
   try {
     const response = await fetch(`${API_BASE_URL}/api/extract`, {
@@ -115,6 +130,19 @@ export async function extractSecretFile(
     }
 
     const result = await response.json();
+    
+    // Download the extracted file blob if URL is provided
+    if (result.extractedFileUrl) {
+      try {
+        const fileResponse = await fetch(result.extractedFileUrl);
+        if (fileResponse.ok) {
+          result.extractedFileBlob = await fileResponse.blob();
+        }
+      } catch (error) {
+        console.warn("Failed to download extracted file blob:", error);
+      }
+    }
+    
     return result;
   } catch (error) {
     console.error("Extraction API error:", error);
@@ -208,7 +236,7 @@ export async function calculateCapacity(
     formData.append("coverAudio", data.coverAudio);
     formData.append("lsbBits", data.lsbBits.toString());
 
-    const response = await fetch(`${API_BASE_URL}/api/capacity`, {
+    const response = await fetch(`${API_BASE_URL}/api/check-capacity`, {
       method: "POST",
       body: formData,
     });
