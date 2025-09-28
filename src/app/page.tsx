@@ -333,7 +333,7 @@ export default function BitifyApp() {
       const embedData: EmbedRequest = {
         coverAudio: coverFile!,
         secretFile: secretFile!,
-        password: password,
+        password: hidePassword,
         lsbBits: nLSB,
         enableEncryption: useEncryption,
         useRandomStart: useRandomStart,
