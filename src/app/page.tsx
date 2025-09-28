@@ -24,7 +24,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Slider } from "@/components/ui/slider";
 import {
   Shield,
   FileAudio,
@@ -40,6 +39,9 @@ import {
   Key,
   Settings,
   Shuffle,
+  AlertTriangle,
+  Info,
+  HardDrive,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -58,6 +60,13 @@ export default function BitifyApp() {
   const [nLSB, setNLSB] = useState(1);
   const [hidePassword, setHidePassword] = useState("");
 
+  // Capacity checking states
+  const [capacityInfo, setCapacityInfo] = useState<{
+    available: number;
+    required: number;
+    isValid: boolean;
+  } | null>(null);
+
   // Extract tab states
   const [stegoFile, setStegoFile] = useState<File | null>(null);
   const [password, setPassword] = useState("");
@@ -69,28 +78,80 @@ export default function BitifyApp() {
 
   const handleCoverFileSelect = (file: File | null) => {
     setCoverFile(file);
+
+    // Check capacity when cover file is selected and secret file exists
     if (file && secretFile) {
+      checkCapacity(file, secretFile);
       // Smooth transition to show both files are ready
       setTimeout(() => {
         const element = document.querySelector(".ready-indicator");
         element?.classList.add("animate-bounce");
       }, 300);
+    } else if (!file && secretFile) {
+      // If cover file is removed but secret file exists, show temporary capacity
+      const tempCapacity = 100 * 1024; // 10KB temporary limit
+      setCapacityInfo({
+        available: tempCapacity,
+        required: secretFile.size,
+        isValid: secretFile.size <= tempCapacity,
+      });
+    } else if (!file) {
+      // Clear capacity info when cover file is removed and no secret file
+      setCapacityInfo(null);
     }
   };
 
   const handleSecretFileSelect = (file: File | null) => {
     setSecretFile(file);
+
+    // Check capacity when secret file is selected
     if (file && coverFile) {
+      checkCapacity(coverFile, file);
       // Smooth transition to show both files are ready
       setTimeout(() => {
         const element = document.querySelector(".ready-indicator");
         element?.classList.add("animate-bounce");
       }, 300);
+    } else if (file) {
+      // If only secret file is selected, show temporary capacity info
+      const tempCapacity = 100 * 1024; // 10KB temporary limit
+      setCapacityInfo({
+        available: tempCapacity,
+        required: file.size,
+        isValid: file.size <= tempCapacity,
+      });
+    } else {
+      // Clear capacity info when file is removed
+      setCapacityInfo(null);
     }
   };
 
   const handleStegoFileSelect = (file: File | null) => {
     setStegoFile(file);
+  };
+
+  // Capacity checking function
+  const checkCapacity = (coverFile: File, secretFile: File) => {
+    // Temporary logic: assume 10KB capacity for now
+    // TODO: Replace with actual API call when available
+    const tempCapacity = 100 * 1024; // 10KB
+
+    setCapacityInfo({
+      available: tempCapacity,
+      required: secretFile.size,
+      isValid: secretFile.size <= tempCapacity,
+    });
+  };
+
+  // Helper function to format file size
+  const formatFileSize = (bytes: number) => {
+    if (bytes === 0) return "0 Bytes";
+    const k = 1024;
+    const sizes = ["Bytes", "KB", "MB", "GB"];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return (
+      Number.parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i]
+    );
   };
 
   const handleExtractFile = async () => {
@@ -343,7 +404,7 @@ export default function BitifyApp() {
                       title="Cover Audio File"
                       description="Select an MP3 file to use as cover audio"
                       icon={<FileAudio className="w-6 h-6" />}
-                      maxSize={100 * 1024 * 1024}
+                      maxSize={50 * 1024 * 1024}
                     />
 
                     <FileUpload
@@ -355,6 +416,113 @@ export default function BitifyApp() {
                       maxSize={10 * 1024 * 1024}
                     />
                   </div>
+
+                  {/* Capacity Information */}
+                  {capacityInfo && (
+                    <Card
+                      className={cn(
+                        "glass border-0 shadow-2xl animate-slide-up",
+                        capacityInfo.isValid
+                          ? "border-green-500/20 bg-gradient-to-r from-green-500/5 to-emerald-500/5"
+                          : "border-red-500/20 bg-gradient-to-r from-red-500/5 to-orange-500/5"
+                      )}
+                    >
+                      <CardContent className="p-6">
+                        <div className="flex items-center gap-4">
+                          <div
+                            className={cn(
+                              "w-12 h-12 rounded-xl flex items-center justify-center",
+                              capacityInfo.isValid
+                                ? "bg-gradient-to-br from-green-500 to-emerald-600"
+                                : "bg-gradient-to-br from-red-500 to-orange-600"
+                            )}
+                          >
+                            {capacityInfo.isValid ? (
+                              <HardDrive className="w-6 h-6 text-white" />
+                            ) : (
+                              <AlertTriangle className="w-6 h-6 text-white" />
+                            )}
+                          </div>
+
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-2">
+                              <h3
+                                className={cn(
+                                  "text-lg font-semibold",
+                                  capacityInfo.isValid
+                                    ? "text-green-600"
+                                    : "text-red-600"
+                                )}
+                              >
+                                {capacityInfo.isValid
+                                  ? "Capacity Available"
+                                  : "Insufficient Capacity"}
+                              </h3>
+                              <Info className="w-4 h-4 text-muted-foreground" />
+                            </div>
+
+                            <div className="space-y-2">
+                              <div className="flex justify-between items-center text-sm">
+                                <span className="text-muted-foreground">
+                                  Required:
+                                </span>
+                                <span className="font-medium">
+                                  {formatFileSize(capacityInfo.required)}
+                                </span>
+                              </div>
+                              <div className="flex justify-between items-center text-sm">
+                                <span className="text-muted-foreground">
+                                  Available:
+                                </span>
+                                <span className="font-medium">
+                                  {formatFileSize(capacityInfo.available)}
+                                </span>
+                              </div>
+
+                              <div className="mt-3">
+                                <div className="flex justify-between items-center text-xs text-muted-foreground mb-1">
+                                  <span>Capacity Usage</span>
+                                  <span>
+                                    {Math.round(
+                                      (capacityInfo.required /
+                                        capacityInfo.available) *
+                                        100
+                                    )}
+                                    %
+                                  </span>
+                                </div>
+                                <Progress
+                                  value={Math.min(
+                                    (capacityInfo.required /
+                                      capacityInfo.available) *
+                                      100,
+                                    100
+                                  )}
+                                  className={cn(
+                                    "h-2",
+                                    capacityInfo.isValid
+                                      ? "bg-green-100"
+                                      : "bg-red-100"
+                                  )}
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {!capacityInfo.isValid && (
+                          <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                            <p className="text-sm text-red-700">
+                              <AlertTriangle className="w-4 h-4 inline mr-2" />
+                              The selected file is too large to be hidden in the
+                              cover audio. Please choose a smaller file or a
+                              larger cover audio file.
+                            </p>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  )}
 
                   {/* Steganography Configuration */}
                   <Card className="glass border-0 shadow-2xl py-6">
@@ -490,15 +658,18 @@ export default function BitifyApp() {
                     </CardContent>
                   </Card>
 
-                  {coverFile && secretFile && hidePassword.trim() && (
-                    <div className="ready-indicator flex items-center justify-center gap-4 p-6 glass rounded-2xl animate-slide-up">
-                      <CheckCircle className="w-6 h-6 text-green-500" />
-                      <span className="text-lg font-semibold text-green-500">
-                        Files Ready for Processing
-                      </span>
-                      <ArrowRight className="w-5 h-5 text-green-500 animate-pulse" />
-                    </div>
-                  )}
+                  {coverFile &&
+                    secretFile &&
+                    hidePassword.trim() &&
+                    (!capacityInfo || capacityInfo.isValid) && (
+                      <div className="ready-indicator flex items-center justify-center gap-4 p-6 glass rounded-2xl animate-slide-up">
+                        <CheckCircle className="w-6 h-6 text-green-500" />
+                        <span className="text-lg font-semibold text-green-500">
+                          Files Ready for Processing
+                        </span>
+                        <ArrowRight className="w-5 h-5 text-green-500 animate-pulse" />
+                      </div>
+                    )}
 
                   {coverFile && (
                     <WaveformPlayer
@@ -549,7 +720,8 @@ export default function BitifyApp() {
                         !coverFile ||
                         !secretFile ||
                         !hidePassword.trim() ||
-                        isProcessing
+                        isProcessing ||
+                        (capacityInfo ? !capacityInfo.isValid : false)
                       }
                       onClick={handleHideFile}
                     >
@@ -568,7 +740,7 @@ export default function BitifyApp() {
                       title="Stego Audio File"
                       description="Select an MP3 file containing hidden data"
                       icon={<FileAudio className="w-6 h-6" />}
-                      maxSize={100 * 1024 * 1024}
+                      maxSize={50 * 1024 * 1024}
                     />
 
                     <Card className="group transition-all duration-500 hover:shadow-2xl glass border-0 overflow-hidden">
