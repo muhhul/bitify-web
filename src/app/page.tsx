@@ -14,6 +14,17 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { FileUpload } from "@/components/FileUpload";
 import { WaveformPlayer } from "@/components/WaveformPlayer";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Slider } from "@/components/ui/slider";
 import {
   Shield,
   FileAudio,
@@ -23,11 +34,12 @@ import {
   Zap,
   Eye,
   Download,
-  Settings,
-  Star,
   Crown,
   CheckCircle,
   ArrowRight,
+  Key,
+  Settings,
+  Shuffle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -39,6 +51,21 @@ export default function BitifyApp() {
   const [processingStep, setProcessingStep] = useState("");
   const [progress, setProgress] = useState(0);
   const [isComplete, setIsComplete] = useState(false);
+
+  // Hide tab configuration states
+  const [useEncryption, setUseEncryption] = useState(false);
+  const [useRandomStart, setUseRandomStart] = useState(false);
+  const [nLSB, setNLSB] = useState(1);
+  const [hidePassword, setHidePassword] = useState("");
+
+  // Extract tab states
+  const [stegoFile, setStegoFile] = useState<File | null>(null);
+  const [password, setPassword] = useState("");
+  const [isExtracting, setIsExtracting] = useState(false);
+  const [extractProgress, setExtractProgress] = useState(0);
+  const [extractStep, setExtractStep] = useState("");
+  const [extractComplete, setExtractComplete] = useState(false);
+  const [extractedFileName, setExtractedFileName] = useState("");
 
   const handleCoverFileSelect = (file: File | null) => {
     setCoverFile(file);
@@ -60,6 +87,38 @@ export default function BitifyApp() {
         element?.classList.add("animate-bounce");
       }, 300);
     }
+  };
+
+  const handleStegoFileSelect = (file: File | null) => {
+    setStegoFile(file);
+  };
+
+  const handleExtractFile = async () => {
+    setIsExtracting(true);
+    setExtractProgress(0);
+
+    const steps = [
+      { step: "Analyzing stego audio file...", duration: 1000 },
+      { step: "Verifying password...", duration: 800 },
+      { step: "Extracting hidden data...", duration: 1500 },
+      { step: "Decrypting file content...", duration: 1200 },
+      { step: "Reconstructing original file...", duration: 800 },
+    ];
+
+    for (let i = 0; i < steps.length; i++) {
+      setExtractStep(steps[i].step);
+      await new Promise((resolve) => setTimeout(resolve, steps[i].duration));
+      setExtractProgress((i + 1) * 20);
+    }
+
+    setExtractedFileName("secret_document.pdf");
+    setExtractComplete(true);
+    setIsExtracting(false);
+
+    // Auto transition to results tab
+    setTimeout(() => {
+      setActiveTab("results");
+    }, 1000);
   };
 
   const handleHideFile = async () => {
@@ -251,7 +310,7 @@ export default function BitifyApp() {
                 onValueChange={setActiveTab}
                 className="w-full"
               >
-                <TabsList className="grid w-full grid-cols-3 mb-8 glass p-2 h-16 border-0">
+                <TabsList className="grid w-full grid-cols-3 glass p-2 h-16 border-0">
                   <TabsTrigger
                     value="hide"
                     className="text-lg font-semibold data-[state=active]:bg-gradient-to-r data-[state=active]:from-secondary data-[state=active]:to-primary data-[state=active]:text-white transition-all duration-500 rounded-xl hover:bg-gradient-to-r hover:from-secondary/20 hover:to-primary/20 hover:scale-105 hover:shadow-lg"
@@ -297,7 +356,141 @@ export default function BitifyApp() {
                     />
                   </div>
 
-                  {coverFile && secretFile && (
+                  {/* Steganography Configuration */}
+                  <Card className="glass border-0 shadow-2xl py-6">
+                    <CardHeader className="pb-4">
+                      <CardTitle className="flex items-center gap-3 text-xl">
+                        <Settings className="w-6 h-6 text-primary" />
+                        Steganography Configuration
+                      </CardTitle>
+                      <CardDescription>
+                        Configure advanced options for hiding your file
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                      {/* Grid 2x2 Layout */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {/* Encryption Toggle */}
+                        <div className="flex items-center justify-between p-4 rounded-lg bg-gradient-to-r from-primary/5 to-secondary/5 border border-primary/10">
+                          <div className="flex items-center gap-3">
+                            <Shield
+                              className={cn(
+                                "w-5 h-5",
+                                useEncryption
+                                  ? "text-green-500"
+                                  : "text-gray-400"
+                              )}
+                            />
+                            <div>
+                              <Label className="text-base font-medium">
+                                Use Encryption
+                              </Label>
+                              <p className="text-sm text-muted-foreground">
+                                Encrypt the hidden file for additional security
+                              </p>
+                            </div>
+                          </div>
+                          <Switch
+                            checked={useEncryption}
+                            onCheckedChange={setUseEncryption}
+                          />
+                        </div>
+
+                        {/* Random Start Point Toggle */}
+                        <div className="flex items-center justify-between p-4 rounded-lg bg-gradient-to-r from-secondary/5 to-accent/5 border border-secondary/10">
+                          <div className="flex items-center gap-3">
+                            <Shuffle
+                              className={cn(
+                                "w-5 h-5",
+                                useRandomStart
+                                  ? "text-blue-500"
+                                  : "text-gray-400"
+                              )}
+                            />
+                            <div>
+                              <Label className="text-base font-medium">
+                                Random Insertion Start
+                              </Label>
+                              <p className="text-sm text-muted-foreground">
+                                Use random starting point for better security
+                              </p>
+                            </div>
+                          </div>
+                          <Switch
+                            checked={useRandomStart}
+                            onCheckedChange={setUseRandomStart}
+                          />
+                        </div>
+
+                        {/* n-LSB Selector */}
+                        <div className="space-y-3 p-4 rounded-lg bg-gradient-to-r from-accent/5 to-primary/5 border border-accent/10">
+                          <Label className="text-base font-medium flex items-center gap-2">
+                            <BarChart3 className="w-5 h-5 text-primary" />
+                            LSB Depth (n-LSB)
+                          </Label>
+                          <div className="flex items-center gap-4">
+                            <Select
+                              value={nLSB.toString()}
+                              onValueChange={(value) =>
+                                setNLSB(parseInt(value))
+                              }
+                            >
+                              <SelectTrigger className="w-32">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => (
+                                  <SelectItem key={n} value={n.toString()}>
+                                    {n} bit{n > 1 ? "s" : ""}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <p className="text-sm text-muted-foreground">
+                            Higher values allow more data but reduce audio
+                            quality
+                          </p>
+                        </div>
+
+                        {/* Password Input - Always visible for steganography */}
+                        <div className="space-y-3 p-4 rounded-lg bg-gradient-to-r from-accent/5 to-primary/5 border border-accent/10">
+                          <Label
+                            htmlFor="hide-password"
+                            className="text-base font-medium flex items-center gap-2"
+                          >
+                            {hidePassword.trim() ? (
+                              <CheckCircle className="w-5 h-5 text-green-500 glow" />
+                            ) : (
+                              <Key className="w-5 h-5 text-primary" />
+                            )}
+                            Steganography Password
+                          </Label>
+                          <Input
+                            id="hide-password"
+                            type="password"
+                            placeholder="Enter password for steganography process"
+                            value={hidePassword}
+                            onChange={(e) => setHidePassword(e.target.value)}
+                            className="glass border-primary/20 focus:border-primary/50 transition-all duration-300"
+                          />
+                          <p className="text-sm text-muted-foreground">
+                            {useEncryption
+                              ? "Password will be used for both steganography and encryption"
+                              : "Password will be used for steganography process"}
+                          </p>
+                          {hidePassword.trim() && (
+                            <p className="text-sm text-green-600 flex items-center gap-2">
+                              <CheckCircle className="w-4 h-4" />
+                              Password set for steganography
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {coverFile && secretFile && hidePassword.trim() && (
                     <div className="ready-indicator flex items-center justify-center gap-4 p-6 glass rounded-2xl animate-slide-up">
                       <CheckCircle className="w-6 h-6 text-green-500" />
                       <span className="text-lg font-semibold text-green-500">
@@ -348,11 +541,16 @@ export default function BitifyApp() {
                     </div>
                   )}
 
-                  <div className="flex justify-center pt-8">
+                  <div className="flex justify-center">
                     <Button
                       size="lg"
                       className="px-16 py-8 text-xl premium-gradient hover:opacity-90 luxury-shadow hover-lift transition-all duration-500 rounded-2xl"
-                      disabled={!coverFile || !secretFile || isProcessing}
+                      disabled={
+                        !coverFile ||
+                        !secretFile ||
+                        !hidePassword.trim() ||
+                        isProcessing
+                      }
                       onClick={handleHideFile}
                     >
                       <Shield className="w-6 h-6 mr-3" />
@@ -361,40 +559,153 @@ export default function BitifyApp() {
                   </div>
                 </TabsContent>
 
-                <TabsContent value="extract" className="mt-12">
-                  <div className="text-center py-20">
-                    <div className="w-32 h-32 glass rounded-full flex items-center justify-center mx-auto mb-8 luxury-shadow animate-glow">
-                      <Download className="w-16 h-16 text-accent" />
+                <TabsContent value="extract" className="mt-12 space-y-12">
+                  <div className="grid lg:grid-cols-2 gap-12">
+                    <FileUpload
+                      accept="audio/mpeg,audio/mp3"
+                      onFileSelect={handleStegoFileSelect}
+                      selectedFile={stegoFile}
+                      title="Stego Audio File"
+                      description="Select an MP3 file containing hidden data"
+                      icon={<FileAudio className="w-6 h-6" />}
+                      maxSize={100 * 1024 * 1024}
+                    />
+
+                    <Card className="group transition-all duration-500 hover:shadow-2xl glass border-0 overflow-hidden">
+                      <CardContent className="p-6">
+                        <div className="space-y-4">
+                          <div className="flex items-center gap-3">
+                            <div
+                              className={cn(
+                                "p-3 rounded-xl bg-gradient-to-br transition-all duration-500",
+                                password.trim()
+                                  ? "from-primary to-accent text-white shadow-lg shadow-primary/25 animate-glow"
+                                  : "from-primary/10 to-accent/10 text-primary group-hover:from-primary/20 group-hover:to-accent/20"
+                              )}
+                            >
+                              {password.trim() ? (
+                                <CheckCircle className="w-6 h-6" />
+                              ) : (
+                                <Key className="w-6 h-6" />
+                              )}
+                            </div>
+                            <div>
+                              <h3 className="font-semibold text-card-foreground">
+                                Extraction Password
+                              </h3>
+                              <p className="text-sm text-muted-foreground">
+                                Enter the password used during hiding
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="space-y-3">
+                            <Label
+                              htmlFor="password"
+                              className="text-sm font-medium"
+                            >
+                              Password
+                            </Label>
+                            <Input
+                              id="password"
+                              type="password"
+                              placeholder="Enter extraction password"
+                              value={password}
+                              onChange={(e) => setPassword(e.target.value)}
+                              className="glass bg-white/50 border-primary/20 focus:border-primary focus:ring-primary/20"
+                            />
+                            <p className="text-xs text-muted-foreground">
+                              This password must match the one used when hiding
+                              the file
+                            </p>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+
+                  {stegoFile && password && (
+                    <div className="ready-indicator flex items-center justify-center gap-4 p-6 glass rounded-2xl animate-slide-up">
+                      <CheckCircle className="w-6 h-6 text-green-500" />
+                      <span className="text-lg font-semibold text-green-500">
+                        Ready for Extraction
+                      </span>
+                      <ArrowRight className="w-5 h-5 text-green-500 animate-pulse" />
                     </div>
-                    <h3 className="text-3xl font-bold mb-6 premium-text-gradient">
-                      Extract Hidden Files
-                    </h3>
-                    <p className="text-muted-foreground mb-12 max-w-lg mx-auto text-lg leading-relaxed">
-                      Upload a stego-audio file to extract the hidden content
-                      with the correct password.
-                    </p>
-                    <Button
-                      variant="outline"
-                      size="lg"
-                      className="glass bg-transparent hover-lift px-8 py-4 text-lg"
+                  )}
+
+                  {stegoFile && (
+                    <WaveformPlayer
+                      file={stegoFile}
+                      title="Stego Audio Preview"
+                      className="animate-slide-up"
+                    />
+                  )}
+
+                  {isExtracting && (
+                    <div
+                      className="fixed bg-black/50 backdrop-blur-sm z-[9999] flex items-center justify-center animate-fade-in"
+                      style={{
+                        position: "fixed",
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: -100,
+                      }}
                     >
-                      Coming Soon
+                      <Card className="glass luxury-shadow p-12 max-w-md w-full mx-4 animate-scale-in">
+                        <div className="text-center space-y-6">
+                          <div className="w-20 h-20 premium-gradient rounded-full flex items-center justify-center mx-auto animate-spin">
+                            <Lock className="w-10 h-10 text-white" />
+                          </div>
+                          <div>
+                            <h3 className="text-2xl font-bold mb-2">
+                              Extracting File
+                            </h3>
+                            <p className="text-muted-foreground mb-6">
+                              {extractStep}
+                            </p>
+                            <Progress
+                              value={extractProgress}
+                              className="w-full h-3"
+                            />
+                            <p className="text-sm text-muted-foreground mt-2">
+                              {extractProgress}% Complete
+                            </p>
+                          </div>
+                        </div>
+                      </Card>
+                    </div>
+                  )}
+
+                  <div className="flex justify-center">
+                    <Button
+                      size="lg"
+                      className="px-16 py-8 text-xl premium-gradient hover:opacity-90 luxury-shadow hover-lift transition-all duration-500 rounded-2xl"
+                      disabled={!stegoFile || !password || isExtracting}
+                      onClick={handleExtractFile}
+                    >
+                      <Lock className="w-6 h-6 mr-3" />
+                      {isExtracting ? "Extracting..." : "Extract Hidden File"}
                     </Button>
                   </div>
                 </TabsContent>
 
                 <TabsContent value="results" className="mt-12">
-                  {isComplete ? (
+                  {isComplete || extractComplete ? (
                     <div className="text-center py-20 animate-slide-up">
                       <div className="w-32 h-32 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full flex items-center justify-center mx-auto mb-8 luxury-shadow animate-bounce">
                         <CheckCircle className="w-16 h-16 text-white" />
                       </div>
                       <h3 className="text-3xl font-bold mb-6 premium-text-gradient">
-                        File Successfully Hidden!
+                        {isComplete
+                          ? "File Successfully Hidden!"
+                          : "File Successfully Extracted!"}
                       </h3>
                       <p className="text-muted-foreground mb-12 max-w-lg mx-auto text-lg leading-relaxed">
-                        Your secret file has been successfully embedded into the
-                        audio file with zero quality loss.
+                        {isComplete
+                          ? "Your secret file has been successfully embedded into the audio file with zero quality loss."
+                          : `The hidden file "${extractedFileName}" has been successfully extracted and is ready for download.`}
                       </p>
                       <div className="flex gap-4 justify-center">
                         <Button
@@ -402,7 +713,9 @@ export default function BitifyApp() {
                           className="premium-gradient hover:opacity-90 luxury-shadow hover-lift px-8 py-4 text-lg"
                         >
                           <Download className="w-5 h-5 mr-2" />
-                          Download Result
+                          {isComplete
+                            ? "Download Result"
+                            : "Download Extracted File"}
                         </Button>
                         <Button
                           variant="outline"
@@ -410,9 +723,12 @@ export default function BitifyApp() {
                           className="glass bg-transparent hover-lift px-8 py-4 text-lg"
                           onClick={() => {
                             setIsComplete(false);
+                            setExtractComplete(false);
                             setCoverFile(null);
                             setSecretFile(null);
-                            setActiveTab("hide");
+                            setStegoFile(null);
+                            setPassword("");
+                            setActiveTab(isComplete ? "hide" : "extract");
                           }}
                         >
                           Process Another File
