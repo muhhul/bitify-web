@@ -14,7 +14,10 @@ export interface EmbedRequest {
 export interface EmbedResponse {
   success: boolean;
   stegoAudioUrl: string;
+  stegoAudioBlob?: Blob;
+  psnr: number;
   qualityScore: number;
+  fileSize: number;
   message?: string;
 }
 
@@ -26,9 +29,21 @@ export interface ExtractRequest {
 export interface ExtractResponse {
   success: boolean;
   extractedFileUrl: string;
+  extractedFileBlob?: Blob;
   originalFileName: string;
   fileSizeBytes: number;
+  fileType: string;
   message?: string;
+}
+
+export interface CapacityRequest {
+  coverAudio: File;
+  lsbBits: number;
+}
+
+export interface CapacityResponse {
+  maxCapacityBytes: number;
+  maxCapacityMB: number;
 }
 
 export interface ApiError {
@@ -183,9 +198,41 @@ export function validateFiles(
 }
 
 /**
- * Calculate estimated capacity for steganography
+ * Calculate capacity for steganography based on cover audio and LSB bits
  */
-export function estimateCapacity(audioFileSizeBytes: number, lsbBits: number): number {
+export async function calculateCapacity(
+  data: CapacityRequest
+): Promise<CapacityResponse> {
+  try {
+    const formData = new FormData();
+    formData.append("coverAudio", data.coverAudio);
+    formData.append("lsbBits", data.lsbBits.toString());
+
+    const response = await fetch(`${API_BASE_URL}/api/capacity`, {
+      method: "POST",
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || "Failed to calculate capacity");
+    }
+
+    const result = await response.json();
+    return result;
+  } catch (error) {
+    console.error("Capacity calculation failed:", error);
+    throw error;
+  }
+}
+
+/**
+ * Estimate capacity locally (fallback function for when API is not available)
+ */
+export function estimateCapacity(
+  audioFileSizeBytes: number,
+  lsbBits: number
+): number {
   // Rough estimation: MP3 files are compressed, but we can estimate based on file size
   // This is a simplified calculation and should be refined based on actual audio analysis
   const estimatedSamples = audioFileSizeBytes * 8; // Very rough estimate

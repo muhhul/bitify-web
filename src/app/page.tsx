@@ -76,6 +76,14 @@ export default function BitifyApp() {
   const [extractComplete, setExtractComplete] = useState(false);
   const [extractedFileName, setExtractedFileName] = useState("");
 
+  // Custom filename states for save-as functionality
+  const [customStegoFileName, setCustomStegoFileName] = useState("");
+  const [customExtractedFileName, setCustomExtractedFileName] = useState("");
+
+  // PSNR and audio quality states
+  const [psnrValue, setPsnrValue] = useState<number | null>(null);
+  const [stegoAudioBlob, setStegoAudioBlob] = useState<Blob | null>(null);
+
   const handleCoverFileSelect = (file: File | null) => {
     setCoverFile(file);
 
@@ -155,6 +163,8 @@ export default function BitifyApp() {
   };
 
   const handleExtractFile = async () => {
+    // Reset hide state when starting extract process
+    setIsComplete(false);
     setIsExtracting(true);
     setExtractProgress(0);
 
@@ -182,7 +192,70 @@ export default function BitifyApp() {
     }, 1000);
   };
 
+  // Helper function to download files with custom names
+  const downloadFile = (blob: Blob, filename: string) => {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  // Generate filename for stego audio
+  const generateStegoFilename = () => {
+    if (customStegoFileName.trim()) {
+      // Ensure the custom filename has an audio extension
+      const trimmedName = customStegoFileName.trim();
+      if (!trimmedName.match(/\.(mp3|wav|m4a|aac)$/i)) {
+        return trimmedName + ".mp3";
+      }
+      return trimmedName;
+    }
+
+    // Default filename based on cover file
+    const baseName = coverFile?.name.replace(/\.[^/.]+$/, "") || "stego_audio";
+    return `${baseName}_stego.mp3`;
+  };
+
+  // Generate filename for extracted file
+  const generateExtractedFilename = () => {
+    if (customExtractedFileName.trim()) {
+      return customExtractedFileName.trim();
+    }
+
+    // Use the extracted filename or default
+    return extractedFileName || "extracted_file";
+  };
+
+  // Handle stego audio download
+  const handleDownloadStegoAudio = () => {
+    if (!coverFile) return;
+
+    // Create a mock stego audio file (in real implementation, this would be the actual processed file)
+    const filename = generateStegoFilename();
+
+    // For demo purposes, we'll use the original cover file
+    // In real implementation, this would be the processed stego audio
+    downloadFile(coverFile, filename);
+  };
+
+  // Handle extracted file download
+  const handleDownloadExtractedFile = () => {
+    // Create a mock extracted file (in real implementation, this would be the actual extracted file)
+    const filename = generateExtractedFilename();
+    const content =
+      "This is a mock extracted file content. In real implementation, this would be the actual extracted data.";
+    const blob = new Blob([content], { type: "text/plain" });
+
+    downloadFile(blob, filename);
+  };
+
   const handleHideFile = async () => {
+    // Reset extract state when starting hide process
+    setExtractComplete(false);
     setIsProcessing(true);
     setProgress(0);
 
@@ -202,6 +275,15 @@ export default function BitifyApp() {
 
     setIsComplete(true);
     setIsProcessing(false);
+
+    // Simulate PSNR calculation (in real implementation, this comes from backend)
+    const simulatedPSNR = 30; // Fixed PSNR value as requested
+    setPsnrValue(simulatedPSNR);
+
+    // Create mock stego audio blob (in real implementation, this comes from backend)
+    if (coverFile) {
+      setStegoAudioBlob(coverFile); // For demo, use cover file as stego audio
+    }
 
     // Auto transition to results tab
     setTimeout(() => {
@@ -865,34 +947,156 @@ export default function BitifyApp() {
 
                 <TabsContent value="results" className="mt-12">
                   {isComplete || extractComplete ? (
-                    <div className="text-center py-20 animate-slide-up">
+                    <div className="text-center pt-10 pb-0 animate-slide-up">
                       <div className="w-32 h-32 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full flex items-center justify-center mx-auto mb-8 luxury-shadow animate-bounce">
                         <CheckCircle className="w-16 h-16 text-white" />
                       </div>
                       <h3 className="text-3xl font-bold mb-6 premium-text-gradient">
                         {isComplete
                           ? "File Successfully Hidden!"
-                          : "File Successfully Extracted!"}
+                          : extractComplete
+                          ? "File Successfully Extracted!"
+                          : "Process Complete!"}
                       </h3>
                       <p className="text-muted-foreground mb-12 max-w-lg mx-auto text-lg leading-relaxed">
                         {isComplete
                           ? "Your secret file has been successfully embedded into the audio file with zero quality loss."
-                          : `The hidden file "${extractedFileName}" has been successfully extracted and is ready for download.`}
+                          : extractComplete
+                          ? `The hidden file "${extractedFileName}" has been successfully extracted and is ready for download.`
+                          : "Your process has completed successfully."}
                       </p>
-                      <div className="flex gap-4 justify-center">
+
+                      {/* Audio Players Section - Only show for hide operations */}
+                      {isComplete && coverFile && stegoAudioBlob && (
+                        <div className="max-w-6xl mx-auto mb-10">
+                          <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-0">
+                            {/* Original Audio Player */}
+                            <CardContent className="pt-0">
+                              <WaveformPlayer
+                                file={coverFile}
+                                title="Original Audio"
+                                className="w-full"
+                              />
+                            </CardContent>
+
+                            {/* Stego Audio Player */}
+                            <CardContent className="pt-0">
+                              <WaveformPlayer
+                                file={stegoAudioBlob}
+                                title="Stego Audio"
+                                className="w-full"
+                              />
+                            </CardContent>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* PSNR Quality Metric - Only show for hide operations */}
+                      {isComplete && psnrValue !== null && (
+                        <div className="max-w-sm mx-auto mb-6">
+                          <Card className="glass border-primary/20 py-6">
+                            <CardHeader className="pb-3 text-center">
+                              <CardTitle className="text-base flex items-center gap-2 justify-center">
+                                <BarChart3 className="w-4 h-4 text-primary" />
+                                Audio Quality (PSNR)
+                              </CardTitle>
+                              <CardDescription className="text-sm">
+                                Peak Signal-to-Noise Ratio
+                              </CardDescription>
+                            </CardHeader>
+                            <CardContent className="text-center pt-0">
+                              <div className="text-3xl font-bold mb-3 premium-text-gradient">
+                                {psnrValue.toFixed(2)} dB
+                              </div>
+                              <Badge
+                                variant={
+                                  psnrValue >= 30 ? "default" : "destructive"
+                                }
+                                className="text-xs mb-2"
+                              >
+                                {psnrValue >= 30
+                                  ? "Excellent Quality"
+                                  : "Quality Warning"}
+                              </Badge>
+                              <p className="text-xs text-muted-foreground">
+                                {psnrValue >= 30
+                                  ? "Audio quality preserved (≥30 dB)"
+                                  : "Audio quality may be compromised (<30 dB)"}
+                              </p>
+                            </CardContent>
+                          </Card>
+                        </div>
+                      )}
+
+                      {/* Custom Filename Input */}
+                      <div className="max-w-sm mx-auto mb-6">
+                        <Label
+                          htmlFor="result-filename"
+                          className="text-sm font-medium flex items-center justify-center gap-2 mb-2"
+                        >
+                          {isComplete ? (
+                            <FileAudio className="w-4 h-4 text-primary" />
+                          ) : extractComplete ? (
+                            <File className="w-4 h-4 text-primary" />
+                          ) : (
+                            <File className="w-4 h-4 text-primary" />
+                          )}
+                          Custom Filename (Optional)
+                        </Label>
+                        <Input
+                          id="result-filename"
+                          type="text"
+                          placeholder={
+                            isComplete
+                              ? "Enter filename for stego audio"
+                              : extractComplete
+                              ? "Enter filename for extracted file"
+                              : "Enter custom filename"
+                          }
+                          value={
+                            isComplete
+                              ? customStegoFileName
+                              : extractComplete
+                              ? customExtractedFileName
+                              : ""
+                          }
+                          onChange={(e) =>
+                            isComplete
+                              ? setCustomStegoFileName(e.target.value)
+                              : extractComplete
+                              ? setCustomExtractedFileName(e.target.value)
+                              : undefined
+                          }
+                          className="glass border-primary/20 focus:border-primary/50 transition-all duration-300 text-center"
+                        />
+                        <p className="text-xs text-muted-foreground mt-1 text-center">
+                          Leave empty to use default filename
+                        </p>
+                      </div>
+
+                      <div className="flex gap-3 justify-center mt-4">
                         <Button
                           size="lg"
-                          className="premium-gradient hover:opacity-90 luxury-shadow hover-lift px-8 py-4 text-lg"
+                          className="premium-gradient hover:opacity-90 luxury-shadow hover-lift px-6 py-3"
+                          onClick={
+                            isComplete
+                              ? handleDownloadStegoAudio
+                              : extractComplete
+                              ? handleDownloadExtractedFile
+                              : undefined
+                          }
                         >
-                          <Download className="w-5 h-5 mr-2" />
+                          <Download className="w-4 h-4 mr-2" />
                           {isComplete
                             ? "Download Result"
-                            : "Download Extracted File"}
+                            : extractComplete
+                            ? "Download Extracted File"
+                            : "Download"}
                         </Button>
                         <Button
                           variant="outline"
                           size="lg"
-                          className="glass bg-transparent hover-lift px-8 py-4 text-lg"
+                          className="glass bg-transparent hover-lift px-6 py-3"
                           onClick={() => {
                             setIsComplete(false);
                             setExtractComplete(false);
@@ -900,6 +1104,8 @@ export default function BitifyApp() {
                             setSecretFile(null);
                             setStegoFile(null);
                             setPassword("");
+                            setPsnrValue(null);
+                            setStegoAudioBlob(null);
                             setActiveTab(isComplete ? "hide" : "extract");
                           }}
                         >
@@ -908,7 +1114,7 @@ export default function BitifyApp() {
                       </div>
                     </div>
                   ) : (
-                    <div className="text-center py-20">
+                    <div className="text-center py-10">
                       <div className="w-32 h-32 glass rounded-full flex items-center justify-center mx-auto mb-8 luxury-shadow animate-glow">
                         <BarChart3 className="w-16 h-16 text-secondary" />
                       </div>
