@@ -17,17 +17,17 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-interface InteractiveAudioPlayerProps {
+interface WaveformPlayerProps {
   file: File | Blob;
   title?: string;
   className?: string;
 }
 
-export function InteractiveAudioPlayer({
+export function WaveformPlayer({
   file,
   title = "Audio",
   className,
-}: InteractiveAudioPlayerProps) {
+}: WaveformPlayerProps) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -128,6 +128,16 @@ export function InteractiveAudioPlayer({
     }
   };
 
+  const handleWaveformClick = (index: number) => {
+    const audio = audioRef.current;
+    if (!audio || !duration) return;
+
+    const clickPosition = index / waveformData.length;
+    const newTime = clickPosition * duration;
+    audio.currentTime = newTime;
+    setCurrentTime(newTime);
+  };
+
   const formatTime = (time: number) => {
     if (isNaN(time)) return "0:00";
     const minutes = Math.floor(time / 60);
@@ -148,7 +158,7 @@ export function InteractiveAudioPlayer({
       onMouseLeave={() => setIsHovered(false)}
     >
       <CardContent className="p-8">
-        <audio ref={audioRef} src={audioUrl} preload="metadata" />
+        {audioUrl && <audio ref={audioRef} src={audioUrl} preload="metadata" />}
 
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-4">
@@ -218,6 +228,7 @@ export function InteractiveAudioPlayer({
                       height: `${Math.max(height * 0.7, 8)}%`,
                       animationDelay: `${index * 10}ms`,
                     }}
+                    onClick={() => handleWaveformClick(index)}
                   />
                 );
               })}

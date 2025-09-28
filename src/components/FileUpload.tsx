@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-interface ModernFileUploadProps {
+interface FileUploadProps {
   accept?: string;
   onFileSelect: (file: File | null) => void;
   selectedFile?: File | null;
@@ -27,7 +27,7 @@ interface ModernFileUploadProps {
   className?: string;
 }
 
-export function ModernFileUpload({
+export function FileUpload({
   accept,
   onFileSelect,
   selectedFile,
@@ -36,7 +36,7 @@ export function ModernFileUpload({
   icon,
   maxSize = 50 * 1024 * 1024, // 50MB default
   className,
-}: ModernFileUploadProps) {
+}: FileUploadProps) {
   const [isDragOver, setIsDragOver] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isUploading, setIsUploading] = useState(false);

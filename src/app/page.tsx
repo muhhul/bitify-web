@@ -12,8 +12,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { ModernFileUpload } from "@/components/modern-file-upload";
-import { InteractiveAudioPlayer } from "@/components/interactive-audio-player";
+import { FileUpload } from "@/components/FileUpload";
+import { WaveformPlayer } from "@/components/WaveformPlayer";
 import {
   Shield,
   FileAudio,
@@ -126,12 +126,12 @@ export default function BitifyApp() {
       </div>
 
       <header className="relative border-b border-border/30 glass luxury-shadow">
-        <div className="container mx-auto px-6 py-8">
+        <div className="container mx-auto px-6 py-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-6">
               <div className="relative">
                 <div className="flex items-center justify-center w-16 h-16 premium-gradient rounded-2xl luxury-shadow animate-glow">
-                  <Shield className="w-8 h-8 text-white" />
+                  <Shield className="w-6 h-6 text-white" />
                 </div>
                 <div className="absolute -top-2 -right-2 w-6 h-6 bg-gradient-to-r from-accent to-secondary rounded-full animate-pulse flex items-center justify-center">
                   <Crown className="w-3 h-3 text-white" />
@@ -142,27 +142,9 @@ export default function BitifyApp() {
                   Bitify
                 </h1>
                 <p className="text-muted-foreground font-medium">
-                  Premium Steganography Platform
+                  Audio Steganography Platform
                 </p>
               </div>
-            </div>
-
-            <div className="flex items-center gap-4">
-              <Badge
-                variant="secondary"
-                className="glass bg-gradient-to-r from-accent/20 to-secondary/20 text-accent border-accent/30 px-4 py-2 animate-shimmer"
-              >
-                <Star className="w-4 h-4 mr-2" />
-                Premium Edition
-              </Badge>
-              <Button
-                variant="outline"
-                size="lg"
-                className="glass bg-transparent hover-lift px-6"
-              >
-                <Settings className="w-5 h-5 mr-2" />
-                Settings
-              </Button>
             </div>
           </div>
         </div>
@@ -185,13 +167,13 @@ export default function BitifyApp() {
             <p className="text-xl text-muted-foreground max-w-4xl mx-auto text-pretty leading-relaxed mb-12">
               Experience the pinnacle of digital steganography with our advanced
               platform that seamlessly embeds secret files into MP3 audio files
-              using military-grade encryption and customizable LSB settings.
-              Redefine digital privacy with unparalleled sophistication.
+              using encryption and customizable LSB settings. Redefine digital
+              privacy with unparalleled sophistication.
             </p>
 
             <div className="flex flex-wrap justify-center gap-4 mb-12">
               {[
-                "Military-Grade Encryption",
+                "Encryption",
                 "Advanced LSB Technology",
                 "Real-time Quality Analysis",
                 "Zero Quality Loss",
@@ -272,21 +254,21 @@ export default function BitifyApp() {
                 <TabsList className="grid w-full grid-cols-3 mb-8 glass p-2 h-16 border-0">
                   <TabsTrigger
                     value="hide"
-                    className="text-lg font-semibold data-[state=active]:bg-gradient-to-r data-[state=active]:from-secondary data-[state=active]:to-primary data-[state=active]:text-white transition-all duration-500 rounded-xl"
+                    className="text-lg font-semibold data-[state=active]:bg-gradient-to-r data-[state=active]:from-secondary data-[state=active]:to-primary data-[state=active]:text-white transition-all duration-500 rounded-xl hover:bg-gradient-to-r hover:from-secondary/20 hover:to-primary/20 hover:scale-105 hover:shadow-lg"
                   >
                     <Eye className="w-5 h-5 mr-3" />
                     Hide Files
                   </TabsTrigger>
                   <TabsTrigger
                     value="extract"
-                    className="text-lg font-semibold data-[state=active]:bg-gradient-to-r data-[state=active]:from-secondary data-[state=active]:to-primary data-[state=active]:text-white transition-all duration-500 rounded-xl"
+                    className="text-lg font-semibold data-[state=active]:bg-gradient-to-r data-[state=active]:from-secondary data-[state=active]:to-primary data-[state=active]:text-white transition-all duration-500 rounded-xl hover:bg-gradient-to-r hover:from-secondary/20 hover:to-primary/20 hover:scale-105 hover:shadow-lg"
                   >
                     <Download className="w-5 h-5 mr-3" />
                     Extract Files
                   </TabsTrigger>
                   <TabsTrigger
                     value="results"
-                    className="text-lg font-semibold data-[state=active]:bg-gradient-to-r data-[state=active]:from-secondary data-[state=active]:to-primary data-[state=active]:text-white transition-all duration-500 rounded-xl"
+                    className="text-lg font-semibold data-[state=active]:bg-gradient-to-r data-[state=active]:from-secondary data-[state=active]:to-primary data-[state=active]:text-white transition-all duration-500 rounded-xl hover:bg-gradient-to-r hover:from-secondary/20 hover:to-primary/20 hover:scale-105 hover:shadow-lg"
                   >
                     <BarChart3 className="w-5 h-5 mr-3" />
                     Results
@@ -295,7 +277,7 @@ export default function BitifyApp() {
 
                 <TabsContent value="hide" className="mt-12 space-y-12">
                   <div className="grid lg:grid-cols-2 gap-12">
-                    <ModernFileUpload
+                    <FileUpload
                       accept="audio/mpeg,audio/mp3"
                       onFileSelect={handleCoverFileSelect}
                       selectedFile={coverFile}
@@ -305,7 +287,7 @@ export default function BitifyApp() {
                       maxSize={100 * 1024 * 1024}
                     />
 
-                    <ModernFileUpload
+                    <FileUpload
                       onFileSelect={handleSecretFileSelect}
                       selectedFile={secretFile}
                       title="Secret File"
@@ -326,7 +308,7 @@ export default function BitifyApp() {
                   )}
 
                   {coverFile && (
-                    <InteractiveAudioPlayer
+                    <WaveformPlayer
                       file={coverFile}
                       title="Cover Audio Preview"
                       className="animate-slide-up"
@@ -334,7 +316,16 @@ export default function BitifyApp() {
                   )}
 
                   {isProcessing && (
-                    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center animate-fade-in">
+                    <div
+                      className="fixed bg-black/50 backdrop-blur-sm z-[9999] flex items-center justify-center animate-fade-in"
+                      style={{
+                        position: "fixed",
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: -100,
+                      }}
+                    >
                       <Card className="glass luxury-shadow p-12 max-w-md w-full mx-4 animate-scale-in">
                         <div className="text-center space-y-6">
                           <div className="w-20 h-20 premium-gradient rounded-full flex items-center justify-center mx-auto animate-spin">

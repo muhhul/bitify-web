@@ -1,37 +1,57 @@
-"use client"
+"use client";
 
-import type React from "react"
+import type React from "react";
 
-import { useState, useRef } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Checkbox } from "@/components/ui/checkbox"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Progress } from "@/components/ui/progress"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Upload, FileAudio, File, Lock, Settings, CheckCircle, AlertCircle } from "lucide-react"
-import { AudioPlayer } from "@/components/audio-player"
+import { useState, useRef } from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Progress } from "@/components/ui/progress";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  Upload,
+  FileAudio,
+  File,
+  Lock,
+  Settings,
+  CheckCircle,
+  AlertCircle,
+} from "lucide-react";
+import { AudioPlayer } from "@/components/AudioPlayer";
 
-interface FileHideState {
-  coverFile: File | null
-  secretFile: File | null
-  password: string
-  lsbBits: string
-  encrypt: boolean
-  randomStart: boolean
-  processing: boolean
+interface EmbeddingState {
+  coverFile: File | null;
+  secretFile: File | null;
+  password: string;
+  lsbBits: string;
+  encrypt: boolean;
+  randomStart: boolean;
+  processing: boolean;
   result: {
-    success: boolean
-    message: string
-    stegoFile?: Blob
-    psnr?: number
-  } | null
+    success: boolean;
+    message: string;
+    stegoFile?: Blob;
+    psnr?: number;
+  } | null;
 }
 
-export function FileHideInterface() {
-  const [state, setState] = useState<FileHideState>({
+export function SteganographyEmbedder() {
+  const [state, setState] = useState<EmbeddingState>({
     coverFile: null,
     secretFile: null,
     password: "",
@@ -40,52 +60,52 @@ export function FileHideInterface() {
     randomStart: false,
     processing: false,
     result: null,
-  })
+  });
 
-  const coverFileRef = useRef<HTMLInputElement>(null)
-  const secretFileRef = useRef<HTMLInputElement>(null)
+  const coverFileRef = useRef<HTMLInputElement>(null);
+  const secretFileRef = useRef<HTMLInputElement>(null);
 
   const handleCoverFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
+    const file = e.target.files?.[0];
     if (file && file.type.startsWith("audio/")) {
-      setState((prev) => ({ ...prev, coverFile: file, result: null }))
+      setState((prev) => ({ ...prev, coverFile: file, result: null }));
     }
-  }
+  };
 
   const handleSecretFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
+    const file = e.target.files?.[0];
     if (file) {
-      setState((prev) => ({ ...prev, secretFile: file, result: null }))
+      setState((prev) => ({ ...prev, secretFile: file, result: null }));
     }
-  }
+  };
 
   const calculateCapacity = () => {
-    if (!state.coverFile) return 0
+    if (!state.coverFile) return 0;
     // Rough estimation: MP3 files typically have ~1.4MB per minute
     // With LSB steganography, capacity depends on sample rate and LSB bits used
-    const estimatedSamples = (state.coverFile.size / 1000) * 44100 // Rough estimate
-    const bitsPerSample = Number.parseInt(state.lsbBits)
-    return Math.floor((estimatedSamples * bitsPerSample) / 8) // Convert to bytes
-  }
+    const estimatedSamples = (state.coverFile.size / 1000) * 44100; // Rough estimate
+    const bitsPerSample = Number.parseInt(state.lsbBits);
+    return Math.floor((estimatedSamples * bitsPerSample) / 8); // Convert to bytes
+  };
 
   const canHideFile = () => {
-    if (!state.coverFile || !state.secretFile) return false
-    const capacity = calculateCapacity()
-    return state.secretFile.size <= capacity
-  }
+    if (!state.coverFile || !state.secretFile) return false;
+    const capacity = calculateCapacity();
+    return state.secretFile.size <= capacity;
+  };
 
   const handleHideFile = async () => {
-    if (!state.coverFile || !state.secretFile || !state.password) return
+    if (!state.coverFile || !state.secretFile || !state.password) return;
 
-    setState((prev) => ({ ...prev, processing: true, result: null }))
+    setState((prev) => ({ ...prev, processing: true, result: null }));
 
     try {
       // Simulate processing time
-      await new Promise((resolve) => setTimeout(resolve, 2000))
+      await new Promise((resolve) => setTimeout(resolve, 2000));
 
       // In a real implementation, this would call your Python backend
       // For demo purposes, we'll simulate success
-      const mockPsnr = Math.random() * 20 + 40 // Random PSNR between 40-60 dB
+      const mockPsnr = Math.random() * 20 + 40; // Random PSNR between 40-60 dB
 
       setState((prev) => ({
         ...prev,
@@ -93,34 +113,37 @@ export function FileHideInterface() {
         result: {
           success: true,
           message: `File successfully hidden! PSNR: ${mockPsnr.toFixed(2)} dB`,
-          stegoFile: new Blob([new ArrayBuffer(state.coverFile!.size)], { type: "audio/mpeg" }),
+          stegoFile: new Blob([new ArrayBuffer(state.coverFile!.size)], {
+            type: "audio/mpeg",
+          }),
           psnr: mockPsnr,
         },
-      }))
+      }));
     } catch (error) {
       setState((prev) => ({
         ...prev,
         processing: false,
         result: {
           success: false,
-          message: "Failed to hide file. Please check your inputs and try again.",
+          message:
+            "Failed to hide file. Please check your inputs and try again.",
         },
-      }))
+      }));
     }
-  }
+  };
 
   const downloadStegoFile = () => {
-    if (!state.result?.stegoFile) return
+    if (!state.result?.stegoFile) return;
 
-    const url = URL.createObjectURL(state.result.stegoFile)
-    const a = document.createElement("a")
-    a.href = url
-    a.download = `stego_${state.coverFile?.name || "audio.mp3"}`
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
-    URL.revokeObjectURL(url)
-  }
+    const url = URL.createObjectURL(state.result.stegoFile);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `stego_${state.coverFile?.name || "audio.mp3"}`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
 
   return (
     <div className="space-y-6">
@@ -133,7 +156,9 @@ export function FileHideInterface() {
               <FileAudio className="w-5 h-5" />
               Cover Audio File
             </CardTitle>
-            <CardDescription>Select an MP3 file to use as cover audio (mono or stereo)</CardDescription>
+            <CardDescription>
+              Select an MP3 file to use as cover audio (mono or stereo)
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
@@ -152,7 +177,9 @@ export function FileHideInterface() {
                 ) : (
                   <div className="space-y-2">
                     <Upload className="w-8 h-8 text-muted-foreground mx-auto" />
-                    <p className="text-muted-foreground">Click to upload MP3 file</p>
+                    <p className="text-muted-foreground">
+                      Click to upload MP3 file
+                    </p>
                   </div>
                 )}
               </div>
@@ -163,7 +190,9 @@ export function FileHideInterface() {
                 onChange={handleCoverFileChange}
                 className="hidden"
               />
-              {state.coverFile && <AudioPlayer file={state.coverFile} title="Cover Audio" />}
+              {state.coverFile && (
+                <AudioPlayer file={state.coverFile} title="Cover Audio" />
+              )}
             </div>
           </CardContent>
         </Card>
@@ -175,7 +204,9 @@ export function FileHideInterface() {
               <File className="w-5 h-5" />
               Secret File
             </CardTitle>
-            <CardDescription>Select any file to hide inside the audio</CardDescription>
+            <CardDescription>
+              Select any file to hide inside the audio
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
@@ -187,16 +218,25 @@ export function FileHideInterface() {
                   <div className="space-y-2">
                     <File className="w-8 h-8 text-primary mx-auto" />
                     <p className="font-medium">{state.secretFile.name}</p>
-                    <p className="text-sm text-muted-foreground">{(state.secretFile.size / 1024).toFixed(2)} KB</p>
+                    <p className="text-sm text-muted-foreground">
+                      {(state.secretFile.size / 1024).toFixed(2)} KB
+                    </p>
                   </div>
                 ) : (
                   <div className="space-y-2">
                     <Upload className="w-8 h-8 text-muted-foreground mx-auto" />
-                    <p className="text-muted-foreground">Click to upload any file</p>
+                    <p className="text-muted-foreground">
+                      Click to upload any file
+                    </p>
                   </div>
                 )}
               </div>
-              <input ref={secretFileRef} type="file" onChange={handleSecretFileChange} className="hidden" />
+              <input
+                ref={secretFileRef}
+                type="file"
+                onChange={handleSecretFileChange}
+                className="hidden"
+              />
 
               {/* Capacity Check */}
               {state.coverFile && state.secretFile && (
@@ -216,7 +256,8 @@ export function FileHideInterface() {
                     )}
                   </div>
                   <div className="mt-2 text-xs text-muted-foreground">
-                    Estimated capacity: {(calculateCapacity() / 1024).toFixed(2)} KB
+                    Estimated capacity:{" "}
+                    {(calculateCapacity() / 1024).toFixed(2)} KB
                   </div>
                 </div>
               )}
@@ -232,7 +273,9 @@ export function FileHideInterface() {
             <Settings className="w-5 h-5" />
             Steganography Settings
           </CardTitle>
-          <CardDescription>Configure encryption and LSB settings</CardDescription>
+          <CardDescription>
+            Configure encryption and LSB settings
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           {/* Password */}
@@ -243,22 +286,35 @@ export function FileHideInterface() {
               type="password"
               placeholder="Enter a strong password"
               value={state.password}
-              onChange={(e) => setState((prev) => ({ ...prev, password: e.target.value }))}
+              onChange={(e) =>
+                setState((prev) => ({ ...prev, password: e.target.value }))
+              }
             />
           </div>
 
           {/* LSB Bits */}
           <div className="space-y-2">
             <Label htmlFor="lsb-bits">LSB Bits (1-4)</Label>
-            <Select value={state.lsbBits} onValueChange={(value) => setState((prev) => ({ ...prev, lsbBits: value }))}>
+            <Select
+              value={state.lsbBits}
+              onValueChange={(value) =>
+                setState((prev) => ({ ...prev, lsbBits: value }))
+              }
+            >
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="1">1 bit (highest quality, lowest capacity)</SelectItem>
+                <SelectItem value="1">
+                  1 bit (highest quality, lowest capacity)
+                </SelectItem>
                 <SelectItem value="2">2 bits (balanced)</SelectItem>
-                <SelectItem value="3">3 bits (lower quality, higher capacity)</SelectItem>
-                <SelectItem value="4">4 bits (lowest quality, highest capacity)</SelectItem>
+                <SelectItem value="3">
+                  3 bits (lower quality, higher capacity)
+                </SelectItem>
+                <SelectItem value="4">
+                  4 bits (lowest quality, highest capacity)
+                </SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -269,7 +325,9 @@ export function FileHideInterface() {
               <Checkbox
                 id="encrypt"
                 checked={state.encrypt}
-                onCheckedChange={(checked) => setState((prev) => ({ ...prev, encrypt: !!checked }))}
+                onCheckedChange={(checked) =>
+                  setState((prev) => ({ ...prev, encrypt: !!checked }))
+                }
               />
               <Label htmlFor="encrypt" className="flex items-center gap-2">
                 <Lock className="w-4 h-4" />
@@ -281,9 +339,13 @@ export function FileHideInterface() {
               <Checkbox
                 id="random-start"
                 checked={state.randomStart}
-                onCheckedChange={(checked) => setState((prev) => ({ ...prev, randomStart: !!checked }))}
+                onCheckedChange={(checked) =>
+                  setState((prev) => ({ ...prev, randomStart: !!checked }))
+                }
               />
-              <Label htmlFor="random-start">Start hiding at a random position</Label>
+              <Label htmlFor="random-start">
+                Start hiding at a random position
+              </Label>
             </div>
           </div>
         </CardContent>
@@ -293,7 +355,13 @@ export function FileHideInterface() {
       <div className="flex justify-center">
         <Button
           onClick={handleHideFile}
-          disabled={!state.coverFile || !state.secretFile || !state.password || !canHideFile() || state.processing}
+          disabled={
+            !state.coverFile ||
+            !state.secretFile ||
+            !state.password ||
+            !canHideFile() ||
+            state.processing
+          }
           size="lg"
           className="min-w-48"
         >
@@ -326,7 +394,11 @@ export function FileHideInterface() {
       {/* Results */}
       {state.result && (
         <Alert
-          className={state.result.success ? "border-green-200 bg-green-50" : "border-destructive bg-destructive/10"}
+          className={
+            state.result.success
+              ? "border-green-200 bg-green-50"
+              : "border-destructive bg-destructive/10"
+          }
         >
           <div className="flex items-start gap-2">
             {state.result.success ? (
@@ -335,15 +407,26 @@ export function FileHideInterface() {
               <AlertCircle className="w-5 h-5 text-destructive mt-0.5" />
             )}
             <div className="flex-1">
-              <AlertDescription className={state.result.success ? "text-green-800" : "text-destructive"}>
+              <AlertDescription
+                className={
+                  state.result.success ? "text-green-800" : "text-destructive"
+                }
+              >
                 {state.result.message}
               </AlertDescription>
               {state.result.success && state.result.stegoFile && (
                 <div className="mt-4 flex gap-3">
-                  <Button onClick={downloadStegoFile} variant="outline" size="sm">
+                  <Button
+                    onClick={downloadStegoFile}
+                    variant="outline"
+                    size="sm"
+                  >
                     Download Stego Audio
                   </Button>
-                  <AudioPlayer file={state.result.stegoFile} title="Stego Audio" />
+                  <AudioPlayer
+                    file={state.result.stegoFile}
+                    title="Stego Audio"
+                  />
                 </div>
               )}
             </div>
@@ -351,5 +434,5 @@ export function FileHideInterface() {
         </Alert>
       )}
     </div>
-  )
+  );
 }

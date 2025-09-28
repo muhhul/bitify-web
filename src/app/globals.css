@@ -4,7 +4,6 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  /* Premium Bitify color palette */
   --background: #f9fafb;
   --foreground: #1f2937;
   --card: rgba(255, 255, 255, 0.8);
@@ -120,9 +119,14 @@
   * {
     @apply border-border outline-ring/50;
   }
+
+  html, body {
+    height: 100%;
+    min-height: 100vh;
+  }
+
   body {
     @apply bg-background text-foreground font-sans;
-    /* Enhanced premium gradient background with multiple layers */
     background: radial-gradient(circle at 20% 80%, rgba(8, 145, 178, 0.15) 0%, transparent 50%),
       radial-gradient(circle at 80% 20%, rgba(99, 102, 241, 0.15) 0%, transparent 50%),
       radial-gradient(circle at 40% 40%, rgba(16, 185, 129, 0.1) 0%, transparent 50%),
@@ -161,8 +165,7 @@
   }
 
   .luxury-shadow {
-    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04), 0 0 0 1px
-      rgba(255, 255, 255, 0.05);
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04), 0 0 0 1px rgba(255, 255, 255, 0.05);
   }
 
   .animate-float {
@@ -205,24 +208,29 @@
 
 /* Enhanced keyframe animations for premium feel */
 @keyframes float {
+
   0%,
   100% {
     transform: translateY(0px) rotate(0deg);
   }
+
   33% {
     transform: translateY(-15px) rotate(1deg);
   }
+
   66% {
     transform: translateY(-5px) rotate(-1deg);
   }
 }
 
 @keyframes pulse-glow {
+
   0%,
   100% {
     opacity: 0.8;
     transform: scale(1);
   }
+
   50% {
     opacity: 1;
     transform: scale(1.05);
@@ -234,6 +242,7 @@
     transform: translateY(30px);
     opacity: 0;
   }
+
   to {
     transform: translateY(0);
     opacity: 1;
@@ -245,6 +254,7 @@
     transform: scale(0.9);
     opacity: 0;
   }
+
   to {
     transform: scale(1);
     opacity: 1;
@@ -255,6 +265,7 @@
   0% {
     background-position: -200% 0;
   }
+
   100% {
     background-position: 200% 0;
   }
@@ -264,6 +275,7 @@
   from {
     box-shadow: 0 0 20px rgba(8, 145, 178, 0.3);
   }
+
   to {
     box-shadow: 0 0 30px rgba(99, 102, 241, 0.4);
   }
@@ -281,7 +293,6 @@
   animation: pulse-glow 1s ease-in-out infinite;
 }
 
-/* Premium particle effects */
 .particles {
   position: fixed;
   top: 0;
@@ -306,12 +317,15 @@
     transform: translateY(100vh) translateX(0) rotate(0deg);
     opacity: 0;
   }
+
   10% {
     opacity: 1;
   }
+
   90% {
     opacity: 1;
   }
+
   100% {
     transform: translateY(-10vh) translateX(100px) rotate(360deg);
     opacity: 0;

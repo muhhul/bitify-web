@@ -2,32 +2,32 @@
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
-export interface InsertionRequest {
+export interface EmbedRequest {
   coverAudio: File;
   secretFile: File;
-  stegoKey: string;
-  nLSB: number;
+  password: string;
+  lsbBits: number;
   enableEncryption: boolean;
-  randomStartPoint: boolean;
+  useRandomStart: boolean;
 }
 
-export interface InsertionResponse {
+export interface EmbedResponse {
   success: boolean;
   stegoAudioUrl: string;
-  psnr: number;
+  qualityScore: number;
   message?: string;
 }
 
-export interface ExtractionRequest {
+export interface ExtractRequest {
   stegoAudio: File;
-  stegoKey: string;
+  password: string;
 }
 
-export interface ExtractionResponse {
+export interface ExtractResponse {
   success: boolean;
   extractedFileUrl: string;
-  originalFilename: string;
-  fileSize: number;
+  originalFileName: string;
+  fileSizeBytes: number;
   message?: string;
 }
 
@@ -38,18 +38,18 @@ export interface ApiError {
 }
 
 /**
- * Insert a secret file into a cover audio using steganography
+ * Embed a secret file into a cover audio using steganography
  */
-export async function insertSecretFile(
-  data: InsertionRequest
-): Promise<InsertionResponse> {
+export async function embedSecretFile(
+  data: EmbedRequest
+): Promise<EmbedResponse> {
   const formData = new FormData();
   formData.append("coverAudio", data.coverAudio);
   formData.append("secretFile", data.secretFile);
-  formData.append("stegoKey", data.stegoKey);
-  formData.append("nLSB", data.nLSB.toString());
+  formData.append("password", data.password);
+  formData.append("lsbBits", data.lsbBits.toString());
   formData.append("enableEncryption", data.enableEncryption.toString());
-  formData.append("randomStartPoint", data.randomStartPoint.toString());
+  formData.append("useRandomStart", data.useRandomStart.toString());
 
   try {
     const response = await fetch(`${API_BASE_URL}/api/insert`, {
@@ -78,11 +78,11 @@ export async function insertSecretFile(
  * Extract a secret file from a stego-audio
  */
 export async function extractSecretFile(
-  data: ExtractionRequest
-): Promise<ExtractionResponse> {
+  data: ExtractRequest
+): Promise<ExtractResponse> {
   const formData = new FormData();
   formData.append("stegoAudio", data.stegoAudio);
-  formData.append("stegoKey", data.stegoKey);
+  formData.append("password", data.password);
 
   try {
     const response = await fetch(`${API_BASE_URL}/api/extract`, {
@@ -185,16 +185,16 @@ export function validateFiles(
 /**
  * Calculate estimated capacity for steganography
  */
-export function estimateCapacity(audioFileSize: number, nLSB: number): number {
+export function estimateCapacity(audioFileSizeBytes: number, lsbBits: number): number {
   // Rough estimation: MP3 files are compressed, but we can estimate based on file size
   // This is a simplified calculation and should be refined based on actual audio analysis
-  const estimatedSamples = audioFileSize * 8; // Very rough estimate
-  const bitsPerSample = nLSB;
+  const estimatedSamples = audioFileSizeBytes * 8; // Very rough estimate
+  const bitsPerSample = lsbBits;
   const capacityInBits = estimatedSamples * bitsPerSample;
   const capacityInBytes = Math.floor(capacityInBits / 8);
 
   // Reserve space for metadata (approximately 1KB)
-  const metadataOverhead = 1024;
+  const metadataOverheadBytes = 1024;
 
-  return Math.max(0, capacityInBytes - metadataOverhead);
+  return Math.max(0, capacityInBytes - metadataOverheadBytes);
 }

@@ -6,7 +6,7 @@ import { Progress } from "@/components/ui/progress"
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts"
 import { TrendingUp, Shield, FileAudio, Clock, Zap } from "lucide-react"
 
-interface ResultsDashboardProps {
+interface AnalyticsDashboardProps {
   hideResults?: {
     psnr: number
     processingTime: number
@@ -21,7 +21,7 @@ interface ResultsDashboardProps {
   }
 }
 
-export function ResultsDashboard({ hideResults, extractResults }: ResultsDashboardProps) {
+export function AnalyticsDashboard({ hideResults, extractResults }: AnalyticsDashboardProps) {
   const qualityData = [
     { name: "Original", quality: 100 },
     { name: "Stego Audio", quality: hideResults ? Math.min(100, hideResults.psnr * 1.5) : 0 },
